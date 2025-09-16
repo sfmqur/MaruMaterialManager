@@ -1,6 +1,6 @@
-using MaruskaMaterialManager.Components;
+using MaruMaterialManager.Components;
 
-namespace MaruskaMaterialManager;
+namespace MaruMaterialManager;
 
 public class Program
 {
