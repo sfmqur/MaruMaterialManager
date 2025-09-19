@@ -1,4 +1,6 @@
 using MaruMaterialManager.Components;
+using MaruMaterialManager.Model;
+using Microsoft.EntityFrameworkCore;
 
 namespace MaruMaterialManager;
 
@@ -12,6 +14,16 @@ public class Program
     builder.Services.AddRazorComponents()
       .AddInteractiveServerComponents();
 
+    // Add DbContext with PostgreSQL
+    builder.Services.AddDbContext<PartsDbContext>(options =>
+        options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")),
+        ServiceLifetime.Scoped);
+
+    // Register repository services (you'll create these)
+    // builder.Services.AddScoped<IPartRepository, PartRepository>();
+    // builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+    // builder.Services.AddScoped<ISupplierService, SupplierService>();
+
     var app = builder.Build();
 
     // Configure the HTTP request pipeline.
@@ -21,9 +33,28 @@ public class Program
       // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
       app.UseHsts();
     }
+    else
+    {
+      // Apply database migrations in development
+      using (var scope = app.Services.CreateScope())
+      {
+          var services = scope.ServiceProvider;
+          try
+          {
+              var context = services.GetRequiredService<PartsDbContext>();
+              context.Database.EnsureCreated();
+              // For initial development, you can use this to apply migrations:
+              // context.Database.Migrate();
+          }
+          catch (Exception ex)
+          {
+              var logger = services.GetRequiredService<ILogger<Program>>();
+              logger.LogError(ex, "An error occurred while migrating the database.");
+          }
+      }
+    }
 
     app.UseHttpsRedirection();
-
     app.UseStaticFiles();
     app.UseAntiforgery();
 
