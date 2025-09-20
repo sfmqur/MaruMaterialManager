@@ -1,0 +1,143 @@
+@page "/parts/{Id:int}"
+@rendermode InteractiveServer
+@using MaruMaterialManager.Model.Schema
+@using MaruMaterialManager.Services
+@inject PartService PartService
+@inject NavigationManager NavigationManager
+
+<PageTitle>View Part</PageTitle>
+
+@if (_part is null)
+{
+  <p>
+    <em>Loading...</em>
+  </p>
+}
+else
+{
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>@_part.Name</h1>
+    <div>
+      <button class="btn btn-primary me-2" @onclick="editPart">
+        <i class="bi bi-pencil"></i> Edit
+      </button>
+      <button class="btn btn-outline-secondary" @onclick="backToList">
+        <i class="bi bi-arrow-left"></i> Back to List
+      </button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h5 class="mb-0">Part Details</h5>
+    </div>
+    <div class="card-body">
+      <dl class="row">
+        <dt class="col-sm-3">Part Number</dt>
+        <dd class="col-sm-9">@_part.PartNumber</dd>
+
+        <dt class="col-sm-3">Description</dt>
+        <dd class="col-sm-9">@(string.IsNullOrEmpty(_part.Description) ? "N/A" : _part.Description)</dd>
+
+        <dt class="col-sm-3">Category</dt>
+        <dd class="col-sm-9">@(_part.Category?.Name ?? "N/A")</dd>
+
+        <dt class="col-sm-3">Unit of Measure</dt>
+        <dd class="col-sm-9">@(string.IsNullOrEmpty(_part.UnitOfMeasure) ? "N/A" : _part.UnitOfMeasure)</dd>
+
+        <dt class="col-sm-3">Unit Price</dt>
+        <dd class="col-sm-9">@(_part.UnitPrice?.ToString("C") ?? "N/A")</dd>
+
+        <dt class="col-sm-3">Status</dt>
+        <dd class="col-sm-9">
+          @if (_part.IsActive)
+          {
+            <span class="badge bg-success">Active</span>
+          }
+          else
+          {
+            <span class="badge bg-secondary">Inactive</span>
+          }
+        </dd>
+
+        <dt class="col-sm-3">Preferred Supplier</dt>
+        <dd class="col-sm-9">@(_part.PreferredSupplier?.Name ?? "N/A")</dd>
+
+        <dt class="col-sm-3">Created At</dt>
+        <dd class="col-sm-9">@_part.CreatedAt.ToLocalTime().ToString("g")</dd>
+
+        @if (_part.UpdatedAt.HasValue)
+        {
+          <dt class="col-sm-3">Last Updated</dt>
+          <dd class="col-sm-9">@_part.UpdatedAt?.ToLocalTime().ToString("g")</dd>
+        }
+      </dl>
+    </div>
+  </div>
+
+  <div class="mt-4">
+    <h4>Inventory</h4>
+    @if (_part.PartLocations != null && _part.PartLocations.Any())
+    {
+      <div class="table-responsive">
+        <table class="table table-striped">
+          <thead>
+          <tr>
+            <th>Location</th>
+            <th>Quantity On Hand</th>
+            <th>Reorder Point</th>
+          </tr>
+          </thead>
+          <tbody>
+          @foreach (var location in _part.PartLocations)
+          {
+            <tr>
+              <td>@(location.Location?.Name ?? "Unknown")</td>
+              <td>@location.QuantityOnHand</td>
+              <td>@(location.ReorderPoint?.ToString() ?? "N/A")</td>
+            </tr>
+          }
+          </tbody>
+        </table>
+      </div>
+    }
+    else
+    {
+      <div class="alert alert-info">
+        No inventory records found for this part.
+      </div>
+    }
+  </div>
+}
+
+@code {
+  [Parameter] public int Id { get; set; }
+
+  private Part _part;
+
+  protected override async Task OnInitializedAsync()
+  {
+    var tempPart = await PartService.GetPartAsync(Id);
+
+    if (tempPart is null)
+    {
+      NavigationManager.NavigateTo("/not-found");
+    }
+    else
+    {
+      _part = tempPart;
+    }
+  }
+
+  private void editPart()
+  {
+    NavigationManager.NavigateTo($"/parts/edit/{_part.Id}");
+  }
+
+
+  private void backToList()
+  {
+    NavigationManager.NavigateTo("/parts");
+  }
+
+}

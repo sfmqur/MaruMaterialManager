@@ -1,0 +1,164 @@
+@page "/parts/edit/{Id:int}"
+@rendermode InteractiveServer
+@using MaruMaterialManager.Model.Schema
+@using MaruMaterialManager.Services
+@inject PartService PartService
+@inject NavigationManager NavigationManager
+@inject ILogger<Edit> Logger
+
+<PageTitle>Edit Part</PageTitle>
+
+<h1>Edit Part</h1>
+
+<div class="row">
+    <div class="col-md-8">
+        <EditForm Model="@_part" OnValidSubmit="savePart">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            
+            <div class="mb-3">
+                <label for="partNumber" class="form-label">Part Number *</label>
+                <InputText id="partNumber" @bind-Value="_part.PartNumber" class="form-control" />
+                <ValidationMessage For="@(() => _part.PartNumber)" />
+            </div>
+            
+            <div class="mb-3">
+                <label for="name" class="form-label">Name *</label>
+                <InputText id="name" @bind-Value="_part.Name" class="form-control" />
+                <ValidationMessage For="@(() => _part.Name)" />
+            </div>
+            
+            <div class="mb-3">
+                <label for="description" class="form-label">Description</label>
+                <InputTextArea id="description" @bind-Value="_part.Description" class="form-control" rows="3" />
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="categoryId" class="form-label">Category</label>
+                    <InputSelect id="categoryId" @bind-Value="_part.CategoryId" class="form-select">
+                        <option value="">-- Select Category --</option>
+                        @if (_categories != null)
+                        {
+                            @foreach (var category in _categories)
+                            {
+                                <option value="@category.Id">@category.Name</option>
+                            }
+                        }
+                    </InputSelect>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="unitOfMeasure" class="form-label">Unit of Measure</label>
+                    <InputText id="unitOfMeasure" @bind-Value="_part.UnitOfMeasure" class="form-control" />
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="unitPrice" class="form-label">Unit Price</label>
+                    <InputNumber id="unitPrice" @bind-Value="_part.UnitPrice" class="form-control" />
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="preferredSupplierId" class="form-label">Preferred Supplier</label>
+                    <InputSelect id="preferredSupplierId" @bind-Value="_part.PreferredSupplierId" class="form-select">
+                        <option value="">-- Select Supplier --</option>
+                        @if (_suppliers != null)
+                        {
+                            @foreach (var supplier in _suppliers)
+                            {
+                                <option value="@supplier.Id">@supplier.Name</option>
+                            }
+                        }
+                    </InputSelect>
+                </div>
+            </div>
+            
+            <div class="form-check mb-3">
+                <InputCheckbox id="isActive" @bind-Value="_part.IsActive" class="form-check-input" />
+                <label class="form-check-label" for="isActive">Active</label>
+            </div>
+            
+            <div class="mb-3">
+                <button type="submit" class="btn btn-primary me-2">
+                    <i class="bi bi-save"></i> Save
+                </button>
+                <button type="button" class="btn btn-outline-secondary" @onclick="cancel">
+                    <i class="bi bi-x-circle"></i> Cancel
+                </button>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+    
+    private Part _part = new();
+    private List<Category> _categories;
+    private List<Supplier> _suppliers;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Load categories and suppliers for dropdowns
+            _categories = await PartService.GetCategoriesAsync();
+            _suppliers = await PartService.GetSuppliersAsync();
+            
+            if (Id > 0)
+            {
+                // Editing existing part
+                var tempPart = await PartService.GetPartAsync(Id);
+                if (tempPart is null)
+                {
+                    NavigationManager.NavigateTo("/not-found");
+                }
+                else
+                {
+                    _part = tempPart;
+                }
+            }
+            else
+            {
+                // Creating new part
+                _part.IsActive = true;
+                _part.CreatedAt = DateTime.UtcNow;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading part data");
+        }
+    }
+    
+    private async Task savePart()
+    {
+        try
+        {
+            _part.UpdatedAt = DateTime.UtcNow;
+            
+            if (_part.Id > 0)
+            {
+                await PartService.UpdatePartAsync(_part);
+            }
+            else
+            {
+                await PartService.CreatePartAsync(_part);
+            }
+            
+            NavigationManager.NavigateTo("/parts");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving part");
+        }
+    }
+    
+    private void cancel()
+    {
+        NavigationManager.NavigateTo("/parts");
+    }
+}

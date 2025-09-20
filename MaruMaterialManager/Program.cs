@@ -1,5 +1,6 @@
 using MaruMaterialManager.Components;
 using MaruMaterialManager.Model;
+using MaruMaterialManager.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace MaruMaterialManager;
@@ -19,10 +20,14 @@ public class Program
         options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")),
         ServiceLifetime.Scoped);
 
-    // Register repository services (you'll create these)
-    // builder.Services.AddScoped<IPartRepository, PartRepository>();
-    // builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
-    // builder.Services.AddScoped<ISupplierService, SupplierService>();
+    // Register services
+    builder.Services.AddScoped<PartService>();
+    
+    // Add HTTP context accessor for logging and other services that might need it
+    builder.Services.AddHttpContextAccessor();
+    
+    // Add logging
+    builder.Services.AddLogging();
 
     var app = builder.Build();
 
